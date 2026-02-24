@@ -37,12 +37,19 @@ export function useAgentStream() {
               const parsed = JSON.parse(dataStr);
               
               if (parsed.type === 'node_update') {
-                if (parsed.node === 'architect') {
-                  setPlan(parsed.data.plan || []);
+                if (parsed.node === 'architect' && parsed.data?.plan) {
+                  setPlan(parsed.data.plan);
                   // Since we removed human-in-the-loop, update stage to researcher
                   setStage('researcher'); 
-                } else if (parsed.node === 'analyst') {
-                  setReport(parsed.data?.final_report || '');
+                }
+                  else if (parsed.node === 'researcher') {
+                    setStage('analyst')
+
+                  }
+                 else if (parsed.node === 'analyst') {
+                  if (parsed.data?.final_report) {
+                    setReport(parsed.data.final_report);
+                  }
                   setStage('completed');
                 }
               } else if (parsed.type === 'token') {

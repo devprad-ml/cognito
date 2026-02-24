@@ -30,7 +30,7 @@ def architect_node(state: AgentState):
 
     plan_result = planner.invoke({"user_request": state["user_request"]})
     
-    print(f"✅ ARCHITECT PLAN GENERATED: {plan_result.steps}")
+    print(f"✅ ARCHITECT PLAN GENERATED:")
 
     return {
         "plan": plan_result.steps,

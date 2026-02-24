@@ -17,8 +17,9 @@ async def get_pool() -> AsyncConnectionPool:
         pool = AsyncConnectionPool(
             conninfo=DB_URI,
             max_size=20, # Handles up to 20 concurrent agent executions
-            kwargs={"autocommit": True} # Required for LangGraph's checkpointer
-        )
+            kwargs={"autocommit": True}, # Required for LangGraph's checkpointer
+            timeout=10.0
+            )
     return pool
 
 async def close_pool():
@@ -30,7 +31,11 @@ async def close_pool():
 
 async def init_db():
     """Initializes necessary database extensions like pgvector."""
-    db_pool = await get_pool()
-    async with db_pool.connection() as conn:
+    try:
+
+       db_pool = await get_pool()
+       async with db_pool.connection() as conn:
         # Enable pgvector extension for future RAG features
         await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+    except Exception as e:
+       print(f"❌ Database connection failed: {e}")

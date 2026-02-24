@@ -61,10 +61,7 @@ async def event_generator(thread_id: str, state_input: dict = None, resume: bool
                     yield f"data: {json.dumps({'type': 'token', 'content': content})}\n\n"
 
         # 3. Check for Interruption (Human-in-the-loop)
-        final_state = await cognito_graph.aget_state(config)
-        if final_state.next:
-            yield f"data: {json.dumps({'type': 'interrupt', 'thread_id': thread_id})}\n\n"
-
+        
     except Exception as e:
         print(f"Error in stream: {e}")
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
