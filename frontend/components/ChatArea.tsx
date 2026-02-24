@@ -46,7 +46,7 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, onA
           <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold text-blue-800">Architect</p>
-              {stage === 'architect' && <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />}
+              {stage === 'architect' && plan.length === 0 && <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />}
             </div>
             
             {stage === 'architect' && plan.length === 0 ? (
@@ -68,28 +68,61 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, onA
         </div>
       )}
 
-      {/* Human-in-the-Loop Interruption Node */}
-      {stage === 'awaiting_approval' && (
-        <div className="flex gap-4 p-5 bg-amber-50 border border-amber-200 rounded-xl max-w-3xl mx-auto shadow-md">
-          <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
-            <PauseCircle className="w-4 h-4 text-amber-700" />
+      {/* Researcher Stage Progress */}
+      {(stage === 'researcher' || stage === 'analyst' || stage === 'completed') && (
+        <div className="flex gap-4 p-4 border border-emerald-100 bg-emerald-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <Search className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-bold text-amber-800 mb-1">Human-in-the-Loop Required</h4>
-            <p className="text-sm text-amber-700 mb-4">Please review the Architect's plan. Proceed to spend tokens and execute searches?</p>
-            <div className="flex gap-3">
-              <button onClick={() => onApprove(true)} className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
-                <CheckCircle className="w-4 h-4" /> Approve & Execute
-              </button>
-              <button onClick={() => onApprove(false)} className="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-amber-200 py-2 rounded-lg text-sm font-medium transition">
-                Reject
-              </button>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-emerald-800">Researcher</p>
+              {stage === 'researcher' && <Loader2 className="w-3 h-3 text-emerald-600 animate-spin" />}
             </div>
+            <p className="text-sm text-emerald-700">
+              {stage === 'researcher' 
+                ? "Searching web sources and extracting key data points..." 
+                : "Deep research phase completed. Data handed over to Analyst."}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Researcher and Analyst UI nodes omitted for brevity but they follow the exact same structural pattern as the Architect. */}
+      {/* Analyst Stage & Final Report */}
+      {(stage === 'analyst' || stage === 'completed' || report.length > 0) && (
+        <div className="flex gap-4 p-4 border border-indigo-100 bg-indigo-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
+          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div className="flex-1 space-y-3">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-indigo-800">Analyst</p>
+              {stage === 'analyst' && <Loader2 className="w-3 h-3 text-indigo-600 animate-spin" />}
+            </div>
+            
+            {stage === 'analyst' && report.length === 0 ? (
+              <p className="text-sm text-indigo-700 animate-pulse">Synthesizing gathered data into final report...</p>
+            ) : (
+              <div className="bg-white p-6 rounded-lg border border-indigo-100 shadow-inner prose prose-sm prose-slate max-w-none">
+                {report.split('\n').map((line, i) => {
+                  if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-bold mb-4">{line.replace('# ', '')}</h1>;
+                  if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mt-6 mb-3">{line.replace('## ', '')}</h2>;
+                  if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-semibold mt-4 mb-2">{line.replace('### ', '')}</h3>;
+                  if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc text-slate-600">{line.replace('- ', '')}</li>;
+                  if (line.trim() === '') return <div key={i} className="h-2" />;
+                  return <p key={i} className="mb-2 text-slate-600 leading-relaxed">{line}</p>;
+                })}
+                {stage === 'completed' && (
+                  <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-widest">
+                    <span>Report Finalized</span>
+                    <span>Cognito v1.0</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       <div ref={chatEndRef} />
     </div>

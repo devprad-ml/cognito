@@ -20,7 +20,7 @@ def architect_node(state: AgentState):
             ("system", "You are the Architect of a multi-agent research team. "
                    "Break the user's research request into 3 to 5 clear, actionable search tasks. "
                    "These tasks will be executed by a web-searching AI."),
-            ("user",{user_request})
+            ("user",state["user_request"])
         ]
     )
 
@@ -29,11 +29,13 @@ def architect_node(state: AgentState):
     planner = prompt | llm.with_structured_output(ResearchPlan)
 
     plan_result = planner.invoke({"user_request": state["user_request"]})
+    
+    print(f"✅ ARCHITECT PLAN GENERATED: {plan_result.steps}")
 
     return {
         "plan": plan_result.steps,
         "current_agent": "architect",
-        "requires_approval": True
+        
     }
 
     

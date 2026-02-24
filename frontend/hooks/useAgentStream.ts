@@ -1,15 +1,16 @@
 import { useState, useCallback } from 'react';
 
-export type AgentStage = 'idle' | 'architect' | 'awaiting_approval' | 'researcher' | 'analyst' | 'completed';
+export type AgentStage = 'idle' | 'architect' | 'researcher' | 'analyst' | 'completed';
+
+// Change this if your backend port is different
+const BACKEND_URL = "http://localhost:8000";
 
 export function useAgentStream() {
   const [stage, setStage] = useState<AgentStage>('idle');
   const [plan, setPlan] = useState<string[]>([]);
   const [report, setReport] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [threadId, setThreadId] = useState<string | null>(null);
 
-  // Helper to parse the SSE stream from a POST request
   const processStream = async (response: Response) => {
     if (!response.body) return;
     const reader = response.body.getReader();
@@ -35,25 +36,20 @@ export function useAgentStream() {
             try {
               const parsed = JSON.parse(dataStr);
               
-              // Handle different event types from the FastAPI backend
               if (parsed.type === 'node_update') {
                 if (parsed.node === 'architect') {
                   setPlan(parsed.data.plan || []);
+                  // Since we removed human-in-the-loop, update stage to researcher
+                  setStage('researcher'); 
                 } else if (parsed.node === 'analyst') {
-                  setReport(parsed.data.final_report || '');
+                  setReport(parsed.data?.final_report || '');
                   setStage('completed');
                 }
-              } else if (parsed.type === 'interrupt') {
-                setStage('awaiting_approval');
-                setIsProcessing(false);
               } else if (parsed.type === 'token') {
-                // If you want to stream the report character-by-character
-                if (stage === 'analyst') {
-                  setReport(prev => prev + parsed.content);
-                }
+                setReport(prev => prev + parsed.content);
               }
             } catch (e) {
-              console.error("Failed to parse stream chunk", e);
+              console.error("Parse Error:", e);
             }
           }
         }
@@ -68,50 +64,18 @@ export function useAgentStream() {
     setReport('');
 
     try {
-      const response = await fetch('/api/research/start', {
+      // FIX: Use absolute URL to hit the FastAPI backend on port 8000
+      const response = await fetch(`${BACKEND_URL}/api/research/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query })
       });
       await processStream(response);
     } catch (error) {
-      console.error("Research failed:", error);
+      console.error("Connection failed. Is the backend running?", error);
       setIsProcessing(false);
     }
   }, []);
 
-  const approvePlan = useCallback(async (approved: boolean) => {
-    if (!threadId) return;
-    
-    if (!approved) {
-      setStage('idle');
-      setPlan([]);
-      return;
-    }
-
-    setStage('researcher');
-    setIsProcessing(true);
-
-    try {
-      const response = await fetch('/api/research/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: threadId, approved })
-      });
-      await processStream(response);
-    } catch (error) {
-      console.error("Approval failed:", error);
-      setIsProcessing(false);
-    }
-  }, [threadId]);
-
-  return {
-    stage,
-    plan,
-    report,
-    isProcessing,
-    startResearch,
-    approvePlan,
-    setThreadId
-  };
+  return { stage, plan, report, isProcessing, startResearch };
 }

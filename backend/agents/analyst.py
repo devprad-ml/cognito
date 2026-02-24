@@ -16,11 +16,13 @@ def analyst_node(state: AgentState):
                    "Include a title, introduction, key findings, and conclusion."),
         ('user', "Original Request: {user_request}\n\nRaw Data: \n{gathered_data}")
     ])
+    raw_data_list = state.get("gathered_data") or []
+    if not isinstance(raw_data_list, list):
+        raw_data_list = [str(raw_data_list)]
     
+    data_str = "\n\n---\n\n".join(raw_data_list)
     # create the chain
     chain = prompt | llm
-
-    data_str = "\n".join(state.get("gathered_data"),[])
     result = chain.invoke({
         "user_request": state["user_request"],
         "gathered_data": data_str

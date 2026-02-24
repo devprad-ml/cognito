@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    # We use pgvector so you are ready for RAG/Memory in the future
+    image: pgvector/pgvector:pg16
+    container_name: cognito_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: cognito
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

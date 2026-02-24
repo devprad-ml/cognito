@@ -9,7 +9,7 @@ from backend.agents.analyst import analyst_node
 
 DB_URI = os.getenv("POSTGRES_URI", "postgresql://user:password@localhost:5432/cognito")
 
-async def build_async_graph():
+async def build_async_graph(checkpointer):
     """Builds the orchestrator-worker graph with asynchronous Postgres persistence."""
     workflow = StateGraph(AgentState)
 
@@ -31,13 +31,10 @@ async def build_async_graph():
         kwargs={'autocommit':True}
     )
 
-    checkpointer = AsyncPostgresSaver(pool)
-
-    await checkpointer.setup()
+    
 
     app = workflow.compile(
         checkpointer=checkpointer,
-        interrupt_before={"researcher"}
     )
 
     return app

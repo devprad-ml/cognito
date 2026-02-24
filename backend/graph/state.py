@@ -8,7 +8,7 @@ class AgentState(TypedDict):
 
     # add_messages allows us to append to the list and not overwrite
 
-    messages: Annotated(list[BaseMessage], add_messages)
+    messages: Annotated[list[BaseMessage], add_messages]
 
     # the original research request
     user_request: str
@@ -25,5 +25,5 @@ class AgentState(TypedDict):
     # status flags for the frontend
 
     current_agent: str
-    requires_approval: bool
+    
 
