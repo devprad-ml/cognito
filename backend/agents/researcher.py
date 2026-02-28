@@ -45,15 +45,16 @@ def researcher_node(state: AgentState):
                         ("user", "Objective: {objective}\n\nRaw Website Text:\n{text}")
                     ])
                     
+                    
                     chain = extraction_prompt | extraction_llm
                     extracted_info = chain.invoke({
                         "objective": step,
                         "text": raw_page_content
                     })
                     
-                    step_results += f"**Deep Dive Extraction**: \n{extracted_info.content}\n"
+                    step_results += f"Deep Dive Extraction: \n{extracted_info.content}\n"
                 else:
-                    step_results += f"**Deep Dive Extraction**: {raw_page_content}\n"
+                    step_results += f"Deep Dive Extraction: {raw_page_content}\n"
                     
         gathered_data.append(step_results)
         
