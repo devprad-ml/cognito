@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, User, PauseCircle, CheckCircle, Search, FileText, Loader2 } from 'lucide-react';
+import { Bot, User, Search, FileText, Loader2 } from 'lucide-react';
 import { AgentStage } from '../hooks/useAgentStream';
 
 interface ChatAreaProps {
@@ -8,11 +8,11 @@ interface ChatAreaProps {
   plan: string[];
   report: string;
   isProcessing: boolean;
-  onApprove: (approved: boolean) => void;
+  // Removed onApprove since the flow is autonomous now
   chatEndRef: React.RefObject<HTMLDivElement>;
 }
 
-export default function ChatArea({ query, stage, plan, report, isProcessing, onApprove, chatEndRef }: ChatAreaProps) {
+export default function ChatArea({ query, stage, plan, report, isProcessing, chatEndRef }: ChatAreaProps) {
   return (
     <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 space-y-6">
       
