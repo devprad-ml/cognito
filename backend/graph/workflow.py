@@ -1,7 +1,6 @@
 import os
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from psycopg_pool import AsyncConnectionPool
 from backend.graph.state import AgentState
 from backend.agents.manager import architect_node
 from backend.agents.researcher import researcher_node
@@ -23,15 +22,6 @@ async def build_async_graph(checkpointer):
     workflow.add_edge("architect", "researcher")
     workflow.add_edge("researcher", "analyst")
     workflow.add_edge("analyst", END)
-
-    # prod checkpoint setup (guardrail for crashes)
-    pool = AsyncConnectionPool(
-        conninfo=DB_URI,
-        max_size=20,
-        kwargs={'autocommit':True}
-    )
-
-    
 
     app = workflow.compile(
         checkpointer=checkpointer,

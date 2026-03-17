@@ -3,9 +3,9 @@ from langchain_openai import ChatOpenAI
 from backend.graph.state import AgentState
 
 
-def analyst_node(state: AgentState):
+async def analyst_node(state: AgentState):
     """
-    The analyst synthesizes the roaw data into a structured Markdown report.
+    The analyst synthesizes the raw data into a structured Markdown report.
     """
 
     llm = ChatOpenAI(model = 'gpt-4o-mini', temperature=0.4)
@@ -23,7 +23,7 @@ def analyst_node(state: AgentState):
     data_str = "\n\n---\n\n".join(raw_data_list)
     # create the chain
     chain = prompt | llm
-    result = chain.invoke({
+    result = await chain.ainvoke({
         "user_request": state["user_request"],
         "gathered_data": data_str
     })
