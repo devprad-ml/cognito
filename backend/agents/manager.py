@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-from backend.graph.state import AgentState
+from graph.state import AgentState
 
 class ResearchPlan(BaseModel):
     '''Structured output for the research plan'''

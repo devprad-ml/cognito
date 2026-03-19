@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from backend.graph.state import AgentState
-from backend.tools.search_scraper import perform_search, scrape_url
+from graph.state import AgentState
+from tools.search_scraper import perform_search, scrape_url
 
 
 async def researcher_node(state: AgentState):

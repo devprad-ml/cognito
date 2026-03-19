@@ -1,6 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from backend.graph.state import AgentState
+from graph.state import AgentState
 
 
 async def analyst_node(state: AgentState):
