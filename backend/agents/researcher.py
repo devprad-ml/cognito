@@ -1,10 +1,10 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
-from backend.graph.state import AgentState
-from backend.tools.search_scraper import perform_search, scrape_url
+from graph.state import AgentState
+from tools.search_scraper import perform_search, scrape_url
 
 
-def researcher_node(state: AgentState):
+async def researcher_node(state: AgentState):
     """
     The Researcher executes the Architect's plan using Tavily search 
     and BeautifulSoup web scraping.
@@ -47,7 +47,7 @@ def researcher_node(state: AgentState):
                     
                     
                     chain = extraction_prompt | extraction_llm
-                    extracted_info = chain.invoke({
+                    extracted_info = await chain.ainvoke({
                         "objective": step,
                         "text": raw_page_content
                     })

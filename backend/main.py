@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from backend.database.db import get_pool, close_pool, init_db
-from backend.graph.workflow import build_async_graph
+from database.db import get_pool, close_pool, init_db
+from graph.workflow import build_async_graph
 
 cognito_graph = None
 
@@ -61,7 +61,10 @@ async def event_generator(thread_id: str, state_input: dict = None, resume: bool
                     yield f"data: {json.dumps({'type': 'token', 'content': content})}\n\n"
 
         # 3. Check for Interruption (Human-in-the-loop)
-        
+        current_state = await cognito_graph.aget_state(config)
+        if current_state.next:
+            yield f"data: {json.dumps({'type': 'interrupt', 'thread_id': config['configurable']['thread_id']})}\n\n"
+
     except Exception as e:
         print(f"Error in stream: {e}")
         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
