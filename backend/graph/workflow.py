@@ -1,10 +1,10 @@
 import os
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from graph.state import AgentState
-from agents.manager import architect_node
-from agents.researcher import researcher_node
-from agents.analyst import analyst_node
+from backend.graph.state import AgentState
+from backend.agents.manager import architect_node
+from backend.agents.researcher import researcher_node
+from backend.agents.analyst import analyst_node
 
 DB_URI = os.getenv("POSTGRES_URI", "postgresql://user:password@localhost:5432/cognito")
 

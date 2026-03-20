@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bot, User, Search, FileText, Loader2 } from 'lucide-react';
-import { AgentStage } from '../hooks/useAgentStream';
+import { Bot, User, Search, FileText, Loader2, CheckCircle2, Globe } from 'lucide-react';
+import { AgentStage, ResearchStep } from '../hooks/useAgentStream';
 
 interface ChatAreaProps {
   query: string;
@@ -8,14 +8,26 @@ interface ChatAreaProps {
   plan: string[];
   report: string;
   isProcessing: boolean;
-  // Removed onApprove since the flow is autonomous now
+  researchSteps: ResearchStep[];
   chatEndRef: React.RefObject<HTMLDivElement>;
 }
 
-export default function ChatArea({ query, stage, plan, report, isProcessing, chatEndRef }: ChatAreaProps) {
+function StepStatusIcon({ status }: { status: ResearchStep['status'] }) {
+  if (status === 'done') return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />;
+  if (status === 'extracting') return <Globe className="w-3.5 h-3.5 text-blue-500 animate-pulse shrink-0" />;
+  return <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin shrink-0" />;
+}
+
+function stepStatusLabel(status: ResearchStep['status']) {
+  if (status === 'searching') return 'Searching the web…';
+  if (status === 'extracting') return 'Extracting from sources…';
+  return 'Complete';
+}
+
+export default function ChatArea({ query, stage, plan, report, isProcessing, researchSteps, chatEndRef }: ChatAreaProps) {
   return (
     <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 space-y-6">
-      
+
       {/* Empty State */}
       {stage === 'idle' && (
         <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto space-y-4 opacity-70">
@@ -37,7 +49,7 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, cha
         </div>
       )}
 
-      {/* Architect Agent Output */}
+      {/* Architect */}
       {(stage === 'architect' || plan.length > 0) && (
         <div className="flex gap-4 p-4 border border-blue-100 bg-blue-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
@@ -48,9 +60,8 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, cha
               <p className="text-sm font-bold text-blue-800">Architect</p>
               {stage === 'architect' && plan.length === 0 && <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />}
             </div>
-            
             {stage === 'architect' && plan.length === 0 ? (
-              <p className="text-sm text-blue-600 animate-pulse">Generating execution plan...</p>
+              <p className="text-sm text-blue-600 animate-pulse">Generating execution plan…</p>
             ) : (
               <div className="space-y-2">
                 <p className="text-sm text-slate-700">Execution plan generated:</p>
@@ -68,27 +79,50 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, cha
         </div>
       )}
 
-      {/* Researcher Stage Progress */}
+      {/* Researcher — live step tracker */}
       {(stage === 'researcher' || stage === 'analyst' || stage === 'completed') && (
         <div className="flex gap-4 p-4 border border-emerald-100 bg-emerald-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
           <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
             <Search className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-3">
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold text-emerald-800">Researcher</p>
               {stage === 'researcher' && <Loader2 className="w-3 h-3 text-emerald-600 animate-spin" />}
             </div>
-            <p className="text-sm text-emerald-700">
-              {stage === 'researcher' 
-                ? "Searching web sources and extracting key data points..." 
-                : "Deep research phase completed. Data handed over to Analyst."}
-            </p>
+            {researchSteps.length === 0 && stage === 'researcher' && (
+              <p className="text-sm text-emerald-700 animate-pulse">Starting research…</p>
+            )}
+            {researchSteps.length > 0 && (
+              <ul className="space-y-2">
+                {researchSteps.map((s, idx) => (
+                  <li key={idx} className="bg-white rounded-lg border border-emerald-100 p-3 space-y-1.5 shadow-sm">
+                    <div className="flex items-start gap-2">
+                      <StepStatusIcon status={s.status} />
+                      <span className="text-sm text-slate-700 leading-snug">{s.step}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 pl-5">{stepStatusLabel(s.status)}</p>
+                    {s.sources && s.sources.length > 0 && (
+                      <ul className="pl-5 space-y-0.5">
+                        {s.sources.map((src, i) => (
+                          <li key={i} className="text-xs text-blue-500 truncate">↳ {src}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {(stage === 'analyst' || stage === 'completed') && (
+              <p className="text-sm text-emerald-700">
+                Research complete — {researchSteps.length} sub-task{researchSteps.length !== 1 ? 's' : ''} finished. Data handed to Analyst.
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Analyst Stage & Final Report */}
+      {/* Analyst & Final Report */}
       {(stage === 'analyst' || stage === 'completed' || report.length > 0) && (
         <div className="flex gap-4 p-4 border border-indigo-100 bg-indigo-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
@@ -99,17 +133,16 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, cha
               <p className="text-sm font-bold text-indigo-800">Analyst</p>
               {stage === 'analyst' && <Loader2 className="w-3 h-3 text-indigo-600 animate-spin" />}
             </div>
-            
             {stage === 'analyst' && report.length === 0 ? (
-              <p className="text-sm text-indigo-700 animate-pulse">Synthesizing gathered data into final report...</p>
+              <p className="text-sm text-indigo-700 animate-pulse">Synthesizing gathered data into final report…</p>
             ) : (
               <div className="bg-white p-6 rounded-lg border border-indigo-100 shadow-inner prose prose-sm prose-slate max-w-none">
                 {report.split('\n').map((line, i) => {
-                  if (line.startsWith('# ')) return <h1 key={i} className="text-2xl font-bold mb-4">{line.replace('# ', '')}</h1>;
-                  if (line.startsWith('## ')) return <h2 key={i} className="text-xl font-bold mt-6 mb-3">{line.replace('## ', '')}</h2>;
+                  if (line.startsWith('# '))   return <h1 key={i} className="text-2xl font-bold mb-4">{line.replace('# ', '')}</h1>;
+                  if (line.startsWith('## '))  return <h2 key={i} className="text-xl font-bold mt-6 mb-3">{line.replace('## ', '')}</h2>;
                   if (line.startsWith('### ')) return <h3 key={i} className="text-lg font-semibold mt-4 mb-2">{line.replace('### ', '')}</h3>;
-                  if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc text-slate-600">{line.replace('- ', '')}</li>;
-                  if (line.trim() === '') return <div key={i} className="h-2" />;
+                  if (line.startsWith('- '))   return <li key={i} className="ml-4 list-disc text-slate-600">{line.replace('- ', '')}</li>;
+                  if (line.trim() === '')       return <div key={i} className="h-2" />;
                   return <p key={i} className="mb-2 text-slate-600 leading-relaxed">{line}</p>;
                 })}
                 {stage === 'completed' && (
@@ -123,7 +156,7 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, cha
           </div>
         </div>
       )}
-      
+
       <div ref={chatEndRef} />
     </div>
   );
