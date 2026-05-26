@@ -1,21 +1,16 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAgentStream } from '../hooks/useAgentStream';
 import Sidebar from '../components/Sidebar';
 import ChatArea from '../components/ChatArea';
 import { ArrowRight } from 'lucide-react';
 
 export default function CognitoApp() {
-  const { stage, plan, report, isProcessing, researchSteps, startResearch } = useAgentStream();
+  const { stage, plan, report, isProcessing, activities, critique, round, startResearch } = useAgentStream();
 
   const [input, setInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [stage, plan, report, researchSteps]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -34,9 +29,9 @@ export default function CognitoApp() {
           stage={stage}
           plan={plan}
           report={report}
-          isProcessing={isProcessing}
-          researchSteps={researchSteps}
-          chatEndRef={chatEndRef}
+          activities={activities}
+          critique={critique}
+          round={round}
         />
         <div className="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
           <div className="max-w-3xl mx-auto flex gap-3 relative">

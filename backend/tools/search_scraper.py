@@ -9,10 +9,17 @@ load_dotenv()
 # Initialize Tavily
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
-def perform_search(query: str, max_results: int = 2) -> list:
-    """Searches the web using Tavily and returns the top results."""
+def perform_search(query: str, max_results: int = 2, time_range: str | None = None) -> list:
+    """Searches the web using Tavily and returns the top results.
+
+    time_range: optional recency filter — 'day', 'week', 'month', or 'year'.
+    Restricts results to recently published/updated pages for time-sensitive queries.
+    """
     try:
-        response = tavily_client.search(query, search_depth="advanced", max_results=max_results)
+        params = {"search_depth": "advanced", "max_results": max_results}
+        if time_range in ("day", "week", "month", "year"):
+            params["time_range"] = time_range
+        response = tavily_client.search(query, **params)
         return response.get("results", [])
     except Exception as e:
         print(f"Search failed: {e}")

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from backend.database.db import get_pool, close_pool, init_db
+from backend.database.db import get_pool, close_pool
 from backend.graph.workflow import build_async_graph
 from backend.agents.researcher import register_queue, unregister_queue
 
@@ -17,7 +17,6 @@ cognito_graph = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global cognito_graph
-    await init_db()
     pool = await get_pool()
     checkpointer = AsyncPostgresSaver(pool)
     await checkpointer.setup()
@@ -46,8 +45,9 @@ async def event_generator(thread_id: str, state_input: dict):
     register_queue(thread_id, progress_queue)
 
     # Track which node is currently executing so we only stream
-    # analyst tokens (not architect structured-output tokens)
+    # analyst tokens (not architect/researcher/critic tool & structured output)
     current_node = {"name": None}
+    NODE_NAMES = ["architect", "researcher", "analyst", "critic"]
 
     try:
         async def run_graph():
@@ -55,11 +55,15 @@ async def event_generator(thread_id: str, state_input: dict):
                 kind = event["event"]
 
                 # Track node entry
-                if kind == "on_chain_start" and event["name"] in ["architect", "researcher", "analyst"]:
+                if kind == "on_chain_start" and event["name"] in NODE_NAMES:
                     current_node["name"] = event["name"]
+                    # A fresh analyst pass (including revisions) rewrites the report,
+                    # so clear any text streamed during a previous draft.
+                    if event["name"] == "analyst":
+                        await progress_queue.put({"type": "report_reset"})
 
-                # Node completed — send plan/report data
-                elif kind == "on_chain_end" and event["name"] in ["architect", "researcher", "analyst"]:
+                # Node completed — send plan/report/critique data
+                elif kind == "on_chain_end" and event["name"] in NODE_NAMES:
                     output = event["data"].get("output", {})
                     await progress_queue.put({
                         "type": "node_update",

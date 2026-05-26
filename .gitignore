@@ -66,3 +66,6 @@ IDEs and Editors
 *.swo
 .DS_Store
 Thumbs.db
+.claude/
+deep_dive.md
+doc.md
