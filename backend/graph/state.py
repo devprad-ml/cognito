@@ -12,3 +12,9 @@ class AgentState(TypedDict):
     final_report: Optional[str]
     current_agent: str
     thread_id: str  # passed in so researcher can find its progress queue
+
+    # --- Reflection / critic loop ---
+    research_rounds: int          # how many times the researcher has run
+    critique: Optional[str]       # the critic's latest feedback
+    critique_passed: bool         # True once the critic accepts the report
+    missing_info: List[str]       # specific gaps the next research round must fill

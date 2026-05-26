@@ -28,14 +28,3 @@ async def close_pool():
     if pool is not None:
         await pool.close()
         pool = None
-
-async def init_db():
-    """Initializes necessary database extensions like pgvector."""
-    try:
-
-       db_pool = await get_pool()
-       async with db_pool.connection() as conn:
-        # Enable pgvector extension for future RAG features
-        await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-    except Exception as e:
-       print(f"❌ Database connection failed: {e}")

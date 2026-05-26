@@ -1,3 +1,4 @@
+from datetime import date
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from backend.graph.state import AgentState
@@ -11,16 +12,31 @@ async def analyst_node(state: AgentState):
     llm = ChatOpenAI(model = 'gpt-4o-mini', temperature=0.4)
 
     prompt = ChatPromptTemplate.from_messages([
-        ('system',"You are an expert Research Analyst. Synthesize the provided raw data "
+        ('system', f"Today's date is {date.today().isoformat()}. "
+                   "You are an expert Research Analyst. Synthesize the provided raw data "
                    "into a comprehensive, well-structured Markdown report. "
-                   "Include a title, introduction, key findings, and conclusion."),
+                   "Include a title, introduction, key findings, and conclusion. "
+                   "Base the report ONLY on the supplied raw data — it reflects the current "
+                   "state of the world. Do NOT rely on your own training knowledge, which may "
+                   "be out of date. When you state dates or 'as of' timing, use the current date "
+                   "above, not your training cutoff."),
         ('user', "Original Request: {user_request}\n\nRaw Data: \n{gathered_data}")
     ])
     raw_data_list = state.get("gathered_data") or []
     if not isinstance(raw_data_list, list):
         raw_data_list = [str(raw_data_list)]
-    
+
     data_str = "\n\n---\n\n".join(raw_data_list)
+
+    # On a revision pass, fold the critic's feedback into the data so the rewrite
+    # explicitly addresses what was missing.
+    is_revision = state.get("research_rounds", 0) > 1 and not state.get("critique_passed", False)
+    if is_revision and state.get("critique"):
+        data_str += (
+            f"\n\n---\n\nREVISION NOTE — a reviewer flagged the previous draft: "
+            f"{state['critique']}. Make sure this revised report resolves it."
+        )
+
     # create the chain
     chain = prompt | llm
     result = await chain.ainvoke({

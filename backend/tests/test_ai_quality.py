@@ -178,7 +178,7 @@ async def test_cognito_regression_gate(cognito_app):
         print(f"   {q}")
 
         config = {"configurable": {"thread_id": f"eval_{run_id}_{item['id']}"}}
-        final_state = await cognito_app.ainvoke({"user_request": q, "progress_callback": None, "research_progress": []}, config)
+        final_state = await cognito_app.ainvoke({"user_request": q}, config)
         report = final_state.get("final_report", "")
 
         print("   ⚖️  Judging…")

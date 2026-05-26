@@ -1,3 +1,4 @@
+from datetime import date
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
@@ -17,9 +18,12 @@ async def architect_node(state: AgentState):
 
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", "You are the Architect of a multi-agent research team. "
+            ("system", f"Today's date is {date.today().isoformat()}. "
+                   "You are the Architect of a multi-agent research team. "
                    "Break the user's research request into 3 to 5 clear, actionable search tasks. "
-                   "These tasks will be executed by a web-searching AI."),
+                   "These tasks will be executed by a web-searching AI. When the request concerns "
+                   "current, recent, or evolving topics, make the tasks explicitly time-aware "
+                   "(e.g., include the current year so the researcher fetches up-to-date sources)."),
             ("user", "{user_request}")
         ]
     )

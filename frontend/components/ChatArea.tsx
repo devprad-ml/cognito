@@ -1,39 +1,61 @@
-import React from 'react';
-import { Bot, User, Search, FileText, Loader2, CheckCircle2, Globe } from 'lucide-react';
-import { AgentStage, ResearchStep } from '../hooks/useAgentStream';
+"use client";
+
+import { useRef, useState, useEffect } from 'react';
+import { Bot, User, Search, FileText, Loader2, CheckCircle2, BookOpen, ShieldCheck, ShieldAlert, RefreshCw } from 'lucide-react';
+import { AgentStage, ResearchActivity, Critique } from '../hooks/useAgentStream';
 
 interface ChatAreaProps {
   query: string;
   stage: AgentStage;
   plan: string[];
   report: string;
-  isProcessing: boolean;
-  researchSteps: ResearchStep[];
-  chatEndRef: React.RefObject<HTMLDivElement>;
+  activities: ResearchActivity[];
+  critique: Critique | null;
+  round: number;
 }
 
-function StepStatusIcon({ status }: { status: ResearchStep['status'] }) {
-  if (status === 'done') return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />;
-  if (status === 'extracting') return <Globe className="w-3.5 h-3.5 text-blue-500 animate-pulse shrink-0" />;
-  return <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin shrink-0" />;
+function ActivityIcon({ tool, status }: { tool: string; status: ResearchActivity['status'] }) {
+  if (status === 'running') return <Loader2 className="w-3.5 h-3.5 text-emerald-500 animate-spin shrink-0" />;
+  if (tool === 'read_url') return <BookOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />;
+  return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />;
 }
 
-function stepStatusLabel(status: ResearchStep['status']) {
-  if (status === 'searching') return 'Searching the web…';
-  if (status === 'extracting') return 'Extracting from sources…';
-  return 'Complete';
+function activityLabel(tool: string) {
+  if (tool === 'web_search') return 'Searched';
+  if (tool === 'read_url') return 'Read';
+  return tool;
 }
 
-export default function ChatArea({ query, stage, plan, report, isProcessing, researchSteps, chatEndRef }: ChatAreaProps) {
+export default function ChatArea({ query, stage, plan, report, activities, critique, round }: ChatAreaProps) {
+  const researching = stage === 'researcher' || stage === 'analyst' || stage === 'critic' || stage === 'completed';
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Keep the view pinned to the bottom only while the user is already there,
+  // so they can freely scroll up to read earlier output during generation.
+  const [stick, setStick] = useState(true);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setStick(atBottom);
+  };
+
+  useEffect(() => {
+    if (!stick) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [report, activities, critique, plan, stage, stick]);
+
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 space-y-6">
+    <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-6 bg-slate-50/50 space-y-6">
 
       {/* Empty State */}
       {stage === 'idle' && (
         <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto space-y-4 opacity-70">
           <Bot className="w-16 h-16 text-slate-300" />
           <h3 className="text-xl font-medium text-slate-600">What would you like to research?</h3>
-          <p className="text-sm text-slate-500">Cognito will deploy an Architect, a Researcher, and an Analyst to build a comprehensive report.</p>
+          <p className="text-sm text-slate-500">Cognito deploys an Architect, an autonomous Researcher, an Analyst, and a Critic to build — and self-correct — a comprehensive report.</p>
         </div>
       )}
 
@@ -79,8 +101,8 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, res
         </div>
       )}
 
-      {/* Researcher — live step tracker */}
-      {(stage === 'researcher' || stage === 'analyst' || stage === 'completed') && (
+      {/* Researcher — autonomous tool activity feed */}
+      {researching && (
         <div className="flex gap-4 p-4 border border-emerald-100 bg-emerald-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
           <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
             <Search className="w-4 h-4 text-emerald-600" />
@@ -89,33 +111,31 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, res
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold text-emerald-800">Researcher</p>
               {stage === 'researcher' && <Loader2 className="w-3 h-3 text-emerald-600 animate-spin" />}
+              {round > 1 && (
+                <span className="text-[10px] bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 flex items-center gap-1">
+                  <RefreshCw className="w-2.5 h-2.5" /> Revision {round - 1}
+                </span>
+              )}
             </div>
-            {researchSteps.length === 0 && stage === 'researcher' && (
-              <p className="text-sm text-emerald-700 animate-pulse">Starting research…</p>
+            {activities.length === 0 && stage === 'researcher' && (
+              <p className="text-sm text-emerald-700 animate-pulse">Deciding where to look…</p>
             )}
-            {researchSteps.length > 0 && (
-              <ul className="space-y-2">
-                {researchSteps.map((s, idx) => (
-                  <li key={idx} className="bg-white rounded-lg border border-emerald-100 p-3 space-y-1.5 shadow-sm">
-                    <div className="flex items-start gap-2">
-                      <StepStatusIcon status={s.status} />
-                      <span className="text-sm text-slate-700 leading-snug">{s.step}</span>
+            {activities.length > 0 && (
+              <ul className="space-y-1.5">
+                {activities.map((a, idx) => (
+                  <li key={idx} className="bg-white rounded-lg border border-emerald-100 p-2.5 flex items-start gap-2 shadow-sm">
+                    <ActivityIcon tool={a.tool} status={a.status} />
+                    <div className="min-w-0">
+                      <span className="text-xs font-medium text-slate-500">{activityLabel(a.tool)}: </span>
+                      <span className="text-sm text-slate-700 break-words">{a.detail}</span>
                     </div>
-                    <p className="text-xs text-slate-400 pl-5">{stepStatusLabel(s.status)}</p>
-                    {s.sources && s.sources.length > 0 && (
-                      <ul className="pl-5 space-y-0.5">
-                        {s.sources.map((src, i) => (
-                          <li key={i} className="text-xs text-blue-500 truncate">↳ {src}</li>
-                        ))}
-                      </ul>
-                    )}
                   </li>
                 ))}
               </ul>
             )}
-            {(stage === 'analyst' || stage === 'completed') && (
+            {(stage === 'analyst' || stage === 'critic' || stage === 'completed') && (
               <p className="text-sm text-emerald-700">
-                Research complete — {researchSteps.length} sub-task{researchSteps.length !== 1 ? 's' : ''} finished. Data handed to Analyst.
+                Research complete — {activities.length} tool call{activities.length !== 1 ? 's' : ''} across {round} round{round !== 1 ? 's' : ''}. Data handed to Analyst.
               </p>
             )}
           </div>
@@ -123,7 +143,7 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, res
       )}
 
       {/* Analyst & Final Report */}
-      {(stage === 'analyst' || stage === 'completed' || report.length > 0) && (
+      {(stage === 'analyst' || stage === 'critic' || stage === 'completed' || report.length > 0) && (
         <div className="flex gap-4 p-4 border border-indigo-100 bg-indigo-50/30 rounded-xl max-w-3xl ml-4 shadow-sm">
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
             <FileText className="w-4 h-4 text-indigo-600" />
@@ -157,7 +177,44 @@ export default function ChatArea({ query, stage, plan, report, isProcessing, res
         </div>
       )}
 
-      <div ref={chatEndRef} />
+      {/* Critic — editorial verdict */}
+      {(stage === 'critic' || critique) && (
+        <div className={`flex gap-4 p-4 border rounded-xl max-w-3xl ml-4 shadow-sm ${
+          critique?.passed ? 'border-emerald-100 bg-emerald-50/30' : 'border-amber-100 bg-amber-50/30'
+        }`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+            critique?.passed ? 'bg-emerald-100' : 'bg-amber-100'
+          }`}>
+            {critique?.passed
+              ? <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              : <ShieldAlert className="w-4 h-4 text-amber-600" />}
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <p className={`text-sm font-bold ${critique?.passed ? 'text-emerald-800' : 'text-amber-800'}`}>Critic</p>
+              {stage === 'critic' && !critique && <Loader2 className="w-3 h-3 text-amber-600 animate-spin" />}
+            </div>
+            {stage === 'critic' && !critique ? (
+              <p className="text-sm text-amber-700 animate-pulse">Reviewing the report for accuracy and completeness…</p>
+            ) : critique && (
+              <>
+                <p className="text-sm font-medium text-slate-700">
+                  {critique.passed ? 'Report accepted ✅' : 'Sent back for another research round 🔁'}
+                </p>
+                {critique.feedback && <p className="text-sm text-slate-600">{critique.feedback}</p>}
+                {!critique.passed && critique.missing.length > 0 && (
+                  <ul className="space-y-1 pt-1">
+                    {critique.missing.map((m, i) => (
+                      <li key={i} className="text-xs text-amber-700 flex gap-2"><span>↳</span>{m}</li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
