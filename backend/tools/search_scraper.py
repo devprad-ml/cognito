@@ -6,8 +6,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize Tavily
-tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+# Lazy Tavily client: instantiated on first use so module import never fails
+# when the API key isn't present (lets tests collect, linters run, etc.).
+_tavily_client: TavilyClient | None = None
+
+def _get_tavily() -> TavilyClient:
+    global _tavily_client
+    if _tavily_client is None:
+        _tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+    return _tavily_client
 
 def perform_search(query: str, max_results: int = 2, time_range: str | None = None) -> list:
     """Searches the web using Tavily and returns the top results.
@@ -19,7 +26,7 @@ def perform_search(query: str, max_results: int = 2, time_range: str | None = No
         params = {"search_depth": "advanced", "max_results": max_results}
         if time_range in ("day", "week", "month", "year"):
             params["time_range"] = time_range
-        response = tavily_client.search(query, **params)
+        response = _get_tavily().search(query, **params)
         return response.get("results", [])
     except Exception as e:
         print(f"Search failed: {e}")
