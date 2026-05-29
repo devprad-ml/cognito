@@ -12,14 +12,14 @@ async def analyst_node(state: AgentState):
     llm = ChatOpenAI(model = 'gpt-4o-mini', temperature=0.4)
 
     prompt = ChatPromptTemplate.from_messages([
-        ('system', f"Today's date is {date.today().isoformat()}. "
+        ('system', f"{date.today().isoformat()}. "
                    "You are an expert Research Analyst. Synthesize the provided raw data "
-                   "into a comprehensive, well-structured Markdown report. "
+                   "into a comprehensive, well-structured text report. "
                    "Include a title, introduction, key findings, and conclusion. "
-                   "Base the report ONLY on the supplied raw data — it reflects the current "
-                   "state of the world. Do NOT rely on your own training knowledge, which may "
-                   "be out of date. When you state dates or 'as of' timing, use the current date "
-                   "above, not your training cutoff."),
+                   "Base the report ONLY on the supplied raw data "
+                   " Do NOT rely on your own training knowledge"
+                   "When you state dates or 'as of' timing, use the current date "
+                   "above"),
         ('user', "Original Request: {user_request}\n\nRaw Data: \n{gathered_data}")
     ])
     raw_data_list = state.get("gathered_data") or []

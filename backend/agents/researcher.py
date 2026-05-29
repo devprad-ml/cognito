@@ -65,15 +65,15 @@ _TOOL_MAP = {t.name: t for t in _TOOLS}
 
 # Each "turn" is one LLM call that may issue one or more tool calls. Bounding
 # turns keeps cost and latency predictable.
-MAX_RESEARCH_TURNS = 6
+MAX_RESEARCH_TURNS = 3
 
 def _researcher_system() -> str:
     return (
-        f"Today's date is {date.today().isoformat()}. "
+        f"{date.today().isoformat()}. "
         "You are an autonomous research agent. You investigate an objective using two tools:\n"
         "  - web_search(query, recency): find relevant sources\n"
         "  - read_url(url): read a page to extract concrete facts and figures\n\n"
-        "Your own training knowledge is likely OUT OF DATE — always rely on what the tools "
+        " always rely on what the tools "
         "return, and prefer the most recent sources. For anything time-sensitive (latest, "
         "current, recent, prices, releases, who-holds-office), set the web_search recency "
         "filter and include the current year in your query.\n\n"
@@ -114,7 +114,7 @@ async def researcher_node(state: AgentState):
     On a revision pass it targets only the gaps the critic identified."""
     rounds = state.get("research_rounds", 0)
     thread_id = state.get("thread_id", "")
-    is_revision = rounds >= 1
+    is_revision = rounds >= 1   # this is a boolean flag
 
     if is_revision:
         await _push(thread_id, {
