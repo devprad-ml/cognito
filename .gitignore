@@ -67,5 +67,12 @@ IDEs and Editors
 .DS_Store
 Thumbs.db
 .claude/
-deep_dive.md
-doc.md
+
+========================
+
+Markdown docs (keep only README.md tracked)
+
+========================
+
+*.md
+!README.md
