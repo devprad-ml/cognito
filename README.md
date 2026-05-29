@@ -1,6 +1,6 @@
 # Cognito: Multi-Agent AI Research Assistant
 
-Cognito is an intelligent, multi-agent AI research platform. It orchestrates a team of AI agents — **Architect**, **Researcher**, and **Analyst** — to autonomously break down complex queries, search the web, scrape deep content, and synthesize comprehensive Markdown reports, all streamed in real-time to a modern Next.js frontend.
+Cognito is an intelligent, multi-agent AI research platform. It orchestrates a team of AI agents — **Architect**, **Researcher**, **Analyst**, and **Critic** — to autonomously break down complex queries, search the web, scrape deep content, synthesize comprehensive Markdown reports, and self-review them for quality, all streamed in real-time to a modern Next.js frontend.
 
 ---
 
@@ -8,7 +8,7 @@ Cognito is an intelligent, multi-agent AI research platform. It orchestrates a t
 
 When a user submits a research query, the request flows through a **LangGraph-orchestrated async state machine**:
 
-```
+```mermaid
 graph TD
     User[User UI / Next.js]
     API[FastAPI Endpoint]
@@ -16,6 +16,7 @@ graph TD
     Arch[🤖 Architect Agent]
     Res[🔍 Researcher Agent]
     Ana[✍️ Analyst Agent]
+    Crit[🧐 Critic Agent]
     Web[(The Web)]
     DB[(PostgreSQL DB)]
 
@@ -25,7 +26,9 @@ graph TD
     Arch -->|Research Plan| Res
     Res <-->|Searches & Scrapes| Web
     Res -->|Raw Extracted Data| Ana
-    Ana -->|Synthesizes| Graph
+    Ana -->|Draft Report| Crit
+    Crit -->|"insufficient (≤ MAX_REVISIONS)"| Res
+    Crit -->|Approved Report| Graph
     Graph -->|Final Report| API
     API -.->|Real-time SSE Stream| User
     Graph -.->|Saves State| DB
@@ -36,8 +39,9 @@ graph TD
 | Agent | Model | Role |
 |---|---|---|
 | **Architect** | `gpt-4o-mini` | Analyzes the prompt and produces a 3–5 step actionable research plan using structured output. |
-| **Researcher** | `gpt-4o-mini` + Tools | Executes the plan. Uses Tavily to search the web and BeautifulSoup to scrape URLs, extracting key facts with LLM assistance. |
+| **Researcher** | `gpt-4o-mini` + Tools | Executes the plan in an autonomous tool loop. Uses Tavily to search the web and BeautifulSoup to scrape URLs, extracting key facts with LLM assistance. On a revision pass it researches only the gaps the Critic flagged. |
 | **Analyst** | `gpt-4o-mini` | Takes the Researcher's raw data and writes a clean, formatted Markdown report. |
+| **Critic** | `gpt-4o-mini` | Reviews the draft report (LLM-as-judge). If it's insufficient, it returns specific gaps and the graph loops back to the Researcher for a focused second pass (bounded by `MAX_REVISIONS`). |
 
 > All agent nodes are **async** (`async def`) and use `ainvoke` for LangChain chains, making them compatible with LangGraph's async graph execution.
 
@@ -145,7 +149,7 @@ Open your browser and navigate to: [http://localhost:3000](http://localhost:3000
 
 ## 🧪 AI Quality Regression Tests
 
-Cognito includes an **LLM-as-Judge** evaluation suite (`backend/tests/test_ai_quality.py`). It runs the full multi-agent graph against a golden dataset and uses `gpt-4o-mini` to score each report from 1–5. The build fails if the average quality score falls below **4.0/5.0**.
+Cognito includes an **LLM-as-Judge** evaluation suite (`backend/tests/test_ai_quality.py`). It runs the full multi-agent graph against a 20-question golden dataset (5 domains × 3 difficulty tiers) and uses `gpt-4o-mini` to score each report on four dimensions (accuracy, depth, hallucination, citations) from 1–5. The build fails if the weighted **composite** average falls below **3.5/5.0**.
 
 To run the tests locally:
 

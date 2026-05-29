@@ -14,6 +14,8 @@ from backend.agents.researcher import register_queue, unregister_queue
 
 cognito_graph = None
 
+
+# For preventing pool leaks and orphaned db connections
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global cognito_graph
