@@ -97,7 +97,7 @@ Create a `.env` file inside the `backend/` directory:
 ```env
 OPENAI_API_KEY=sk-your-openai-api-key
 TAVILY_API_KEY=tvly-your-tavily-api-key
-POSTGRES_URI=postgresql://admin:password123@localhost:5432/cognito
+POSTGRES_URI=your_postgres_url
 ```
 
 ### 3. Setup and Run the Backend (FastAPI)
